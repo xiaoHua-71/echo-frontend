@@ -12,7 +12,8 @@
   <div id="content">
     <router-view/>
   </div>
-  <van-tabbar route @change="onChange">
+  <!-- 这里是Vant文档中的路由方式 -->
+  <van-tabbar route >
     <van-tabbar-item to="/" icon="home-o" name="index">主页</van-tabbar-item>
     <van-tabbar-item to="/team" icon="search" name="team">队伍</van-tabbar-item>
     <van-tabbar-item to="/user" icon="friends-o" name="user">个人</van-tabbar-item>

@@ -20,10 +20,10 @@
           {{ `队伍人数: ${team.hasJoinNum}/${team.maxNum}` }}
         </div>
         <div v-if="team.expireTime">
-          {{ '过期时间: ' + team.expireTime }}
+          {{ '过期时间: ' + formatDateTime(team.expireTime) }}
         </div>
         <div>
-          {{ '创建时间: ' + team.createTime }}
+          {{ '创建时间: ' + formatDateTime(team.createTime) }}
         </div>
       </template>
       <template #footer>
@@ -59,6 +59,7 @@ import {Dialog, Toast} from "vant";
 import {onMounted, ref} from "vue";
 import {getCurrentUser} from "../services/user";
 import {useRouter} from "vue-router";
+import {formatDateTime} from "../utils/date";
 
 interface TeamCardListProps {
   teamList: TeamType[];

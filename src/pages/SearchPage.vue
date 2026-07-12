@@ -10,6 +10,7 @@
   </form>
   <van-divider content-position="left">已选标签</van-divider>
   <div v-if="activeIds.length === 0">请选择标签</div>
+  <!-- 已选择标签间距离 -->
   <van-row gutter="16" style="padding: 0 16px">
     <van-col v-for="tag in activeIds">
       <van-tag closeable size="small" type="primary" @close="doClose(tag)">
@@ -65,7 +66,7 @@ let tagList = ref(originTagList);
  */
 const onSearch = (val) => {
   tagList.value = originTagList.map(parentTag => {
-    const tempChildren = [...parentTag.children];
+    const tempChildren = [...parentTag.children];// 浅拷贝，不改变原有的数组
     const tempParentTag = {...parentTag};
     tempParentTag.children = tempChildren.filter(item => item.text.includes(searchText.value));
     return tempParentTag;
