@@ -6,7 +6,7 @@
           name="userAccount"
           label="账号"
           placeholder="请输入账号"
-          :rules="[{ required: true, message: '请填写用户名' }]"
+          :rules="[{ required: true, message: '请填写账号' }]"
       />
       <van-field
           v-model="userPassword"
@@ -16,49 +16,54 @@
           placeholder="请输入密码"
           :rules="[{ required: true, message: '请填写密码' }]"
       />
+      <van-field
+          v-model="checkPassword"
+          type="password"
+          name="checkPassword"
+          label="确认密码"
+          placeholder="请再次输入密码"
+          :rules="[{ required: true, message: '请确认密码' }]"
+      />
     </van-cell-group>
     <div style="margin: 16px;">
       <van-button round block type="primary" native-type="submit">
-        登录
+        注册
       </van-button>
-    </div>
-    <div style="text-align: center; margin-top: 8px;">
-      还没有账号？
-      <router-link to="/user/register" style="color: #1989fa;">注册新账号</router-link>
     </div>
   </van-form>
 </template>
 
 <script setup lang="ts">
-import {useRoute, useRouter} from "vue-router";
-import {ref} from "vue";
+import { useRouter } from "vue-router";
+import { ref } from "vue";
 import myAxios from "../plugins/myAxios";
-import {Toast} from "vant";
+import { Toast } from "vant";
 
 const router = useRouter();
-const route = useRoute();
 
 const userAccount = ref('');
 const userPassword = ref('');
+const checkPassword = ref('');
 
 const onSubmit = async () => {
-  const res = await myAxios.post('/user/login', {
+  if (userPassword.value !== checkPassword.value) {
+    Toast.fail('两次输入的密码不一致');
+    return;
+  }
+  const res = await myAxios.post('/user/register', {
     userAccount: userAccount.value,
     userPassword: userPassword.value,
+    checkPassword: checkPassword.value,
   })
-  console.log(res, '用户登录');
+  console.log(res, '用户注册');
   if (res.code === 0 && res.data) {
-    Toast.success('登录成功');
-    // 跳转到之前的页面
-    const redirectUrl = route.query?.redirect as string ?? '/';
-    window.location.href = redirectUrl;
+    Toast.success('注册成功');
+    router.push('/user/login');
   } else {
-    Toast.fail('登录失败');
+    Toast.fail(res.description ?? '注册失败');
   }
 };
-
 </script>
 
 <style scoped>
-
 </style>
