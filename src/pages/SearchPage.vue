@@ -30,43 +30,35 @@
 </template>
 
 <script setup lang="ts">
-import {ref} from 'vue';
+import {onMounted, ref} from 'vue';
 import {useRouter} from "vue-router";
+import {getTagList} from "../services/tag";
+import type { TagTreeNode } from "../models/tag";
 
 const router = useRouter()
 
 const searchText = ref('');
 
-const originTagList = [{
-  text: '性别',
-  children: [
-    {text: '男', id: '男'},
-    {text: '女', id: '女'},
-  ],
-},
-  {
-    text: '年级',
-    children: [
-      {text: '大一', id: '大一'},
-      {text: '大二', id: '大二'},
-      {text: '大3', id: '大3'},
-      {text: '大4', id: '大4'},
-      {text: '大5', id: '大5aaaaaaa'},
-      {text: '大6', id: '大6aaaaaaa'},
-    ],
-  },
-]
+// 从后端获取的原始标签树
+const originTagList = ref<TagTreeNode[]>([]);
 
-// 标签列表
-let tagList = ref(originTagList);
+// 标签列表（用于搜索过滤后的展示）
+const tagList = ref<TagTreeNode[]>([]);
+
+// 页面加载时从后端获取标签列表
+onMounted(async () => {
+  const data = await getTagList();
+  originTagList.value = data;
+  tagList.value = data;
+});
 
 /**
  * 搜索过滤
  * @param val
  */
 const onSearch = (val) => {
-  tagList.value = originTagList.map(parentTag => {
-    const tempChildren = [...parentTag.children];// 浅拷贝，不改变原有的数组
+  tagList.value = originTagList.value.map(parentTag => {
+    const tempChildren = [...(parentTag.children || [])];// 浅拷贝，不改变原有的数组
     const tempParentTag = {...parentTag};
     tempParentTag.children = tempChildren.filter(item => item.text.includes(searchText.value));
     return tempParentTag;
@@ -75,7 +67,7 @@ const onSearch = (val) => {
 }
 const onCancel = () => {
   searchText.value = '';
-  tagList.value = originTagList;
+  tagList.value = originTagList.value;
 };
 
 // 已选中的标签
