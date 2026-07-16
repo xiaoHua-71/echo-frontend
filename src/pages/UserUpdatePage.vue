@@ -5,7 +5,7 @@
     <van-cell title="头像" is-link to="/user/edit" :value="user.avatarUrl" @click="toEdit('avatarUrl', '头像', user.avatarUrl)">
       <img style="height: 48px" :src="user.avatarUrl"/>
     </van-cell>
-    <van-cell title="性别" is-link :value="user.gender" @click="toEdit('gender', '性别', user.gender)"/>
+    <van-cell title="性别" is-link :value="genderLabel" @click="toEdit('gender', '性别', String(user.gender))"/>
     <van-cell title="电话" is-link to="/user/edit" :value="user.phone" @click="toEdit('phone', '电话', user.phone)"/>
     <van-cell title="邮箱" is-link to="/user/edit" :value="user.email" @click="toEdit('email', '邮箱', user.email)"/>
     <van-cell title="注册时间" :value="formatDateTime(user.createTime)"/>
@@ -13,24 +13,24 @@
 </template>
 
 <script setup lang="ts">
+import {computed, onMounted, ref} from "vue";
 import {useRouter} from "vue-router";
-import {onMounted, ref} from "vue";
 import {getCurrentUser} from "../services/user";
 import {formatDateTime} from "../utils/date";
 
-// const user = {
-//   id: 1,
-//   username: 'xiaohua',
-//   userAccount: 'xiaohua',
-//   avatarUrl: 'https://636f-codenav-8grj8px727565176-1256524210.tcb.qcloud.la/img/logo.png',
-//   gender: '男',
-//   phone: '123112312',
-//   email: '12345@qq.com',
-//   planetCode: '1234',
-//   createTime: new Date(),
-// }
+const genderOptions = [
+  {name: '男', value: 1},
+  {name: '女', value: 0},
+];
 
 const user = ref();
+
+const genderLabel = computed(() => {
+  if (user.value) {
+    return genderOptions.find(o => o.value === user.value.gender)?.name || '';
+  }
+  return '';
+});
 
 onMounted(async () => {
   user.value = await getCurrentUser();
