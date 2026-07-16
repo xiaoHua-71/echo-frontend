@@ -1,5 +1,5 @@
 <template>
-  <van-cell center title="心动模式">
+  <van-cell center title="心动模式" class="mode-switch">
     <template #right-icon>
       <van-switch v-model="isMatchMode" size="24" />
     </template>
@@ -77,5 +77,8 @@ watchEffect(() => {
 </script>
 
 <style scoped>
-
+.mode-switch {
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
 </style>

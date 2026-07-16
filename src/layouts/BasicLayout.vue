@@ -52,6 +52,9 @@ const onClickRight = () => {
 
 <style scoped>
 #content {
-  padding-bottom: 50px;
+  padding: 12px;
+  padding-bottom: 62px;
+  background: #f4f5f7;
+  min-height: 100vh;
 }
 </style>
