@@ -10,6 +10,7 @@ import SearchResultPage from "../pages/SearchResultPage.vue";
 import UserEditPage from "../pages/UserEditPage.vue";
 import UserLoginPage from "../pages/UserLoginPage.vue";
 import UserRegisterPage from "../pages/UserRegisterPage.vue";
+import UserEmailRegisterPage from "../pages/UserEmailRegisterPage.vue";
 import TeamAddPage from "../pages/TeamAddPage.vue";
 import TeamUpdatePage from "../pages/TeamUpdatePage.vue";
 
@@ -27,6 +28,7 @@ const routes = [
     { path: '/user/team/join', title: '加入队伍', component: UserTeamJoinPage, meta: { requiresAuth: true } },
     { path: '/user/team/create', title: '创建队伍', component: UserTeamCreatePage, meta: { requiresAuth: true } },
     { path: '/user/register', title: '注册', component: UserRegisterPage },
+    { path: '/user/register/email', title: '邮箱注册', component: UserEmailRegisterPage },
     { path: '/user/login', title: '登录', component: UserLoginPage },
 ]
 

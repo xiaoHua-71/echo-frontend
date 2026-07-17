@@ -40,6 +40,11 @@
             注册
           </van-button>
         </div>
+        <div style="text-align: center;">
+          <van-button round block plain type="primary" @click="router.push('/user/register/email')">
+            邮箱注册
+          </van-button>
+        </div>
       </van-form>
     </div>
   </div>
@@ -63,6 +68,7 @@ const onSubmit = async () => {
     return;
   }
   const res = await myAxios.post('/user/register', {
+    registerType: 'password',
     userAccount: userAccount.value,
     userPassword: userPassword.value,
     checkPassword: checkPassword.value,
