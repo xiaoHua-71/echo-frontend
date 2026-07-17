@@ -1,36 +1,48 @@
 <template>
-  <van-form @submit="onSubmit">
-    <van-cell-group inset>
-      <van-field
-          v-model="userAccount"
-          name="userAccount"
-          label="账号"
-          placeholder="请输入账号"
-          :rules="[{ required: true, message: '请填写账号' }]"
-      />
-      <van-field
-          v-model="userPassword"
-          type="password"
-          name="userPassword"
-          label="密码"
-          placeholder="请输入密码"
-          :rules="[{ required: true, message: '请填写密码' }]"
-      />
-      <van-field
-          v-model="checkPassword"
-          type="password"
-          name="checkPassword"
-          label="确认密码"
-          placeholder="请再次输入密码"
-          :rules="[{ required: true, message: '请确认密码' }]"
-      />
-    </van-cell-group>
-    <div style="margin: 16px;">
-      <van-button round block type="primary" native-type="submit">
-        注册
-      </van-button>
+  <div class="register-page">
+    <!-- 2233娘 -->
+    <div class="hero-area">
+      <div class="char-wrapper">
+        <img class="char-img" src="../assets/characters/2233.png" alt="2233娘" />
+      </div>
     </div>
-  </van-form>
+
+    <!-- 注册表单 -->
+    <div class="form-area">
+      <van-form @submit="onSubmit">
+        <van-cell-group inset>
+          <van-field
+              v-model="userAccount"
+              name="userAccount"
+              label="账号"
+              placeholder="请输入账号"
+              :rules="[{ required: true, message: '请填写账号' }]"
+          />
+          <van-field
+              v-model="userPassword"
+              type="password"
+              name="userPassword"
+              label="密码"
+              placeholder="请输入密码"
+              :rules="[{ required: true, message: '请填写密码' }]"
+          />
+          <van-field
+              v-model="checkPassword"
+              type="password"
+              name="checkPassword"
+              label="确认密码"
+              placeholder="请再次输入密码"
+              :rules="[{ required: true, message: '请确认密码' }]"
+          />
+        </van-cell-group>
+        <div style="margin: 20px 16px 16px;">
+          <van-button round block type="primary" native-type="submit">
+            注册
+          </van-button>
+        </div>
+      </van-form>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -66,4 +78,42 @@ const onSubmit = async () => {
 </script>
 
 <style scoped>
+.register-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+}
+
+/* ====== 角色图 ====== */
+.hero-area {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 80px 0 28px;
+}
+
+.char-wrapper {
+  position: relative;
+  width: 230px;
+}
+
+.char-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  animation: idleFloat 4s ease-in-out infinite;
+}
+
+@keyframes idleFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+/* ====== 表单 ====== */
+.form-area {
+  width: 100%;
+  max-width: 340px;
+  padding: 0 16px 40px;
+}
 </style>

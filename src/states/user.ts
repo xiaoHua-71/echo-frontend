@@ -10,7 +10,12 @@ const getCurrentUserState = () : UserType => {
     return currentUser;
 }
 
+const clearCurrentUserState = () => {
+    currentUser = undefined as unknown as UserType;
+}
+
 export {
     setCurrentUserState,
     getCurrentUserState,
+    clearCurrentUserState,
 }

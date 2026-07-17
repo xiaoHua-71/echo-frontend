@@ -5,6 +5,7 @@ import routes from "./config/route";
 import Vant from 'vant';
 import 'vant/lib/index.css';
 import '../global.css'
+import {getCurrentUser} from "./services/user";
 
 const app = createApp(App);
 app.use(Vant);
@@ -14,6 +15,25 @@ const router = VueRouter.createRouter({
     history: VueRouter.createWebHistory(),
     routes, // `routes: routes` 的缩写
 })
+
+// 全局路由守卫：未登录时自动跳转登录页
+router.beforeEach(async (to, _from) => {
+    // 不需要登录的页面直接放行
+    if (to.meta.requiresAuth !== true) {
+        return true;
+    }
+
+    const user = await getCurrentUser();
+    if (!user) {
+        // 未登录，跳转登录页并记录来源路径
+        return {
+            path: '/user/login',
+            query: { redirect: to.fullPath },
+        };
+    }
+
+    return true;
+});
 
 app.use(router);
 app.mount('#app')

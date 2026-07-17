@@ -21,7 +21,7 @@ interface UnwrappedAxiosInstance {
 const isDev = process.env.NODE_ENV === 'development';
 
 const instance = axios.create({
-    baseURL: isDev ? 'http://localhost:8101/api' : '线上地址',
+    baseURL: isDev ? '/api' : '线上地址',
 });
 
 instance.defaults.withCredentials = true; // 配置为true
