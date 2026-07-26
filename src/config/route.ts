@@ -13,6 +13,8 @@ import UserRegisterPage from "../pages/UserRegisterPage.vue";
 import UserEmailRegisterPage from "../pages/UserEmailRegisterPage.vue";
 import TeamAddPage from "../pages/TeamAddPage.vue";
 import TeamUpdatePage from "../pages/TeamUpdatePage.vue";
+import MessagesPage from "../pages/MessagesPage.vue";
+import ChatPage from "../pages/ChatPage.vue";
 
 
 const routes = [
@@ -30,6 +32,8 @@ const routes = [
     { path: '/user/register', title: '注册', component: UserRegisterPage },
     { path: '/user/register/email', title: '邮箱注册', component: UserEmailRegisterPage },
     { path: '/user/login', title: '登录', component: UserLoginPage },
+    { path: '/message', title: '消息', component: MessagesPage, meta: { requiresAuth: true } },
+    { path: '/chat', title: '聊天', component: ChatPage, meta: { requiresAuth: true } },
 ]
 
 export default routes;

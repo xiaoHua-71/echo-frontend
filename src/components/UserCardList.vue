@@ -32,28 +32,24 @@
               type="primary"
               size="small"
               round
-              @click="toggleContact(index)"
+              :loading="chattingUserId === user.id"
+              @click="onEnterChat(user)"
             >
-              {{ expandedIndex === index ? '收起' : '联系我' }}
+              进入聊天
             </van-button>
           </div>
         </div>
-        <transition name="expand">
-          <div v-show="expandedIndex === index" class="contact-wrap">
-            <div class="contact-info">
-              <van-icon name="envelope-o" size="16" color="#1989fa" />
-              <span class="email-text">email: {{ user.email }}</span>
-            </div>
-          </div>
-        </transition>
       </div>
     </van-skeleton>
   </div>
 </template>
 
 <script setup lang="ts">
-import {ref} from 'vue';
-import {UserType} from "../models/user";
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { Toast } from 'vant';
+import { UserType } from "../models/user";
+import { startConversation } from "../services/chat";
 
 interface UserCardListProps {
   loading: boolean;
@@ -66,12 +62,31 @@ const props = withDefaults(defineProps<UserCardListProps>(), {
   userList: [] as UserType[],
 });
 
-const expandedIndex = ref<number | null>(null);
+const router = useRouter();
+const chattingUserId = ref<number | null>(null);
 
-const toggleContact = (index: number) => {
-  expandedIndex.value = expandedIndex.value === index ? null : index;
+const onEnterChat = async (user: UserType) => {
+  if (chattingUserId.value) return; // 防止重复点击
+
+  chattingUserId.value = user.id;
+  const conv = await startConversation(user.id);
+  chattingUserId.value = null;
+
+  if (conv) {
+    router.push({
+      path: '/chat',
+      query: {
+        conversationId: String(conv.conversationId),
+        targetUserId: String(conv.targetUserId),
+        targetUsername: conv.targetUsername,
+        targetAvatarUrl: conv.targetAvatarUrl,
+        targetOnline: String(conv.online),
+      },
+    });
+  } else {
+    Toast.fail('发起会话失败，请稍后重试');
+  }
 };
-
 </script>
 
 <style scoped>
@@ -103,44 +118,5 @@ const toggleContact = (index: number) => {
   flex-shrink: 0;
   padding-right: 16px;
   padding-left: 8px;
-}
-
-.contact-wrap {
-  overflow: hidden;
-  border-radius: 0 0 12px 12px;
-  background: #f7f8fa;
-  margin: 0 12px 12px;
-}
-
-.contact-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px 14px;
-}
-
-.email-text {
-  font-size: 14px;
-  color: #323233;
-  user-select: all;
-}
-
-/* 展开/收起过渡 */
-.expand-enter-active,
-.expand-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.expand-enter-from,
-.expand-leave-to {
-  max-height: 0;
-  opacity: 0;
-  margin-bottom: 0;
-}
-
-.expand-enter-to,
-.expand-leave-from {
-  max-height: 60px;
-  opacity: 1;
 }
 </style>
