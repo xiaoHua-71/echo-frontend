@@ -1,37 +1,35 @@
 <template>
   <div class="user-list">
     <van-skeleton
+      v-for="(user, index) in props.userList"
+      :key="index"
       title
       avatar
       :row="3"
       :loading="props.loading"
-      v-for="(user, index) in props.userList"
-      :key="index"
     >
-      <div class="user-card">
+      <div class="user-card glass-card">
+        <div class="card-accent"></div>
         <div class="card-body">
-          <van-card
-            :desc="user.profile"
-            :title="user.username"
-            :thumb="user.avatarUrl"
-          >
+          <van-card :desc="user.profile" :title="user.username" :thumb="user.avatarUrl">
             <template #tags>
               <van-tag
-                plain
-                type="danger"
                 v-for="tag in user.tags"
                 :key="tag"
-                style="margin-right: 8px; margin-top: 8px"
+                plain
+                class="user-tag"
               >
                 {{ tag }}
               </van-tag>
             </template>
           </van-card>
           <div class="card-action">
+            <div class="action-copy">Start chat</div>
             <van-button
               type="primary"
               size="small"
               round
+              class="chat-button"
               :loading="chattingUserId === user.id"
               @click="onEnterChat(user)"
             >
@@ -45,9 +43,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { Toast } from 'vant';
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { Toast } from "vant";
 import { UserType } from "../models/user";
 import { startConversation } from "../services/chat";
 
@@ -66,7 +64,7 @@ const router = useRouter();
 const chattingUserId = ref<number | null>(null);
 
 const onEnterChat = async (user: UserType) => {
-  if (chattingUserId.value) return; // 防止重复点击
+  if (chattingUserId.value) return;
 
   chattingUserId.value = user.id;
   const conv = await startConversation(user.id);
@@ -74,7 +72,7 @@ const onEnterChat = async (user: UserType) => {
 
   if (conv) {
     router.push({
-      path: '/chat',
+      path: "/chat",
       query: {
         conversationId: String(conv.conversationId),
         targetUserId: String(conv.targetUserId),
@@ -84,7 +82,7 @@ const onEnterChat = async (user: UserType) => {
       },
     });
   } else {
-    Toast.fail('发起会话失败，请稍后重试');
+    Toast.fail("发起会话失败，请稍后重试");
   }
 };
 </script>
@@ -97,10 +95,17 @@ const onEnterChat = async (user: UserType) => {
 }
 
 .user-card {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  position: relative;
   overflow: hidden;
+}
+
+.card-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
 }
 
 .card-body {
@@ -108,15 +113,58 @@ const onEnterChat = async (user: UserType) => {
   align-items: center;
 }
 
-/* 让 van-card 占据剩余空间 */
 .user-card :deep(.van-card) {
   background: transparent;
   flex: 1;
+  padding: 18px 14px 18px 16px;
+}
+
+.user-card :deep(.van-card__title) {
+  margin-bottom: 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.user-card :deep(.van-card__desc) {
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.user-card :deep(.van-card__thumb img) {
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.user-tag {
+  margin-right: 8px;
+  margin-top: 8px;
+  color: var(--accent-primary-deep);
+  border-color: rgba(224, 122, 95, 0.22);
+  background: rgba(224, 122, 95, 0.08);
 }
 
 .card-action {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   padding-right: 16px;
   padding-left: 8px;
+}
+
+.action-copy {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.chat-button {
+  min-width: 92px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #ef9a74 100%);
+  box-shadow: 0 10px 18px rgba(224, 122, 95, 0.22);
 }
 </style>

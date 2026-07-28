@@ -1,30 +1,29 @@
 <template>
-  <div id="teamPage">
-    <van-search v-model="searchText" placeholder="搜索队伍" @search="onSearch" />
+  <div class="page-shell">
+    <section class="glass-card page-head">
+      <h1 class="section-title">我加入的队伍</h1>
+      <p class="section-subtitle">查看你参与中的队伍，继续管理和交流。</p>
+    </section>
+
+    <section class="glass-card toolbar">
+      <van-search v-model="searchText" placeholder="搜索队伍" shape="round" @search="onSearch" />
+    </section>
+
     <team-card-list :teamList="teamList" />
-    <van-empty v-if="teamList?.length < 1" description="数据为空"/>
+    <van-empty v-if="teamList?.length < 1" description="暂无数据" />
   </div>
 </template>
 
 <script setup lang="ts">
-
-import {useRouter} from "vue-router";
+import { onMounted, ref } from "vue";
+import { Toast } from "vant";
 import TeamCardList from "../components/TeamCardList.vue";
-import {onMounted, ref} from "vue";
 import myAxios from "../plugins/myAxios";
-import {Toast} from "vant";
 
-const router = useRouter();
-const searchText = ref('');
-
+const searchText = ref("");
 const teamList = ref([]);
 
-/**
- * 搜索队伍
- * @param val
- * @returns {Promise<void>}
- */
-const listTeam = async (val = '') => {
+const listTeam = async (val = "") => {
   const res = await myAxios.get("/team/list/my/join", {
     params: {
       searchText: val,
@@ -34,24 +33,31 @@ const listTeam = async (val = '') => {
   if (res?.code === 0) {
     teamList.value = res.data;
   } else {
-    Toast.fail('加载队伍失败，请刷新重试');
+    Toast.fail("加载队伍失败，请刷新重试");
   }
-}
-
-
-// 页面加载时只触发一次
-onMounted( () => {
-  listTeam();
-})
-
-const onSearch = (val) => {
-  listTeam(val);
 };
 
+onMounted(() => {
+  listTeam();
+});
+
+const onSearch = (val: string) => {
+  listTeam(val);
+};
 </script>
 
 <style scoped>
-#teamPage {
+.page-head,
+.toolbar {
+  padding: 18px;
+}
 
+.toolbar :deep(.van-search) {
+  background: transparent;
+  padding: 0;
+}
+
+.toolbar :deep(.van-search__content) {
+  background: rgba(255, 255, 255, 0.72);
 }
 </style>

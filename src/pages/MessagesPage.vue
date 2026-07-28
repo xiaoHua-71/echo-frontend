@@ -1,30 +1,27 @@
 <template>
-  <div class="messages-page">
+  <div class="messages-page page-shell">
+    <section class="glass-card page-head">
+      <h1 class="section-title">消息中心</h1>
+      <p class="section-subtitle">集中查看最近会话、未读消息和在线状态。</p>
+    </section>
+
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-      <!-- 加载骨架 -->
       <van-skeleton
+        v-for="i in loading ? 5 : 0"
+        :key="'skeleton-' + i"
         title
         avatar
         :row="2"
         :loading="loading"
-        v-for="i in (loading ? 5 : 0)"
-        :key="'skeleton-' + i"
       />
 
-      <!-- 空状态 -->
       <van-empty v-if="!loading && conversations.length === 0" description="暂无消息" />
 
-      <!-- 会话列表 -->
       <div v-if="!loading && conversations.length > 0" class="conversation-list">
         <van-swipe-cell v-for="conv in conversations" :key="conv.conversationId">
-          <div class="conv-card" @click="onEnterChat(conv)">
+          <div class="conv-card glass-card" @click="onEnterChat(conv)">
             <div class="avatar-wrap">
-              <van-image
-                round
-                width="48"
-                height="48"
-                :src="conv.targetAvatarUrl"
-              />
+              <van-image round width="52" height="52" :src="conv.targetAvatarUrl" />
               <span v-if="conv.online" class="online-dot"></span>
             </div>
             <div class="conv-body">
@@ -54,25 +51,22 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { Dialog, Toast } from 'vant';
-import { getConversations, getUnreadCount, deleteConversation } from '../services/chat';
-import { setUnreadCount } from '../states/chat';
-import type { ConversationType } from '../models/chat';
+import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { Dialog, Toast } from "vant";
+import type { ConversationType } from "../models/chat";
+import { deleteConversation, getConversations, getUnreadCount } from "../services/chat";
+import { setUnreadCount } from "../states/chat";
 
 const router = useRouter();
-
 const conversations = ref<ConversationType[]>([]);
 const loading = ref(true);
 const refreshing = ref(false);
 
-// ---- 加载会话列表 ----
 const loadData = async () => {
   const data = await getConversations();
   conversations.value = data;
 
-  // 同步全局未读数
   const count = await getUnreadCount();
   setUnreadCount(count);
 };
@@ -88,10 +82,9 @@ const onRefresh = async () => {
   refreshing.value = false;
 };
 
-// ---- 进入聊天 ----
 const onEnterChat = (conv: ConversationType) => {
   router.push({
-    path: '/chat',
+    path: "/chat",
     query: {
       conversationId: String(conv.conversationId),
       targetUserId: String(conv.targetUserId),
@@ -102,35 +95,34 @@ const onEnterChat = (conv: ConversationType) => {
   });
 };
 
-// ---- 删除会话 ----
 const onDelete = (conv: ConversationType) => {
   Dialog.confirm({
-    title: '删除会话',
-    message: '删除后将不再显示该会话',
-  }).then(async () => {
-    const ok = await deleteConversation(conv.conversationId);
-    if (ok) {
-      conversations.value = conversations.value.filter(c => c.conversationId !== conv.conversationId);
-      Toast.success('已删除');
-    } else {
-      Toast.fail('删除失败');
-    }
-  }).catch(() => {
-    // 取消
-  });
+    title: "删除会话",
+    message: "删除后将不再显示该会话。",
+  })
+    .then(async () => {
+      const ok = await deleteConversation(conv.conversationId);
+      if (ok) {
+        conversations.value = conversations.value.filter((c) => c.conversationId !== conv.conversationId);
+        Toast.success("已删除");
+      } else {
+        Toast.fail("删除失败");
+      }
+    })
+    .catch(() => undefined);
 };
 
-// ---- 工具函数 ----
 const truncate = (text: string | undefined, max: number): string => {
-  if (!text) return '';
-  return text.length > max ? text.slice(0, max) + '...' : text;
+  if (!text) return "";
+  return text.length > max ? `${text.slice(0, max)}...` : text;
 };
 
 const formatConvTime = (timestamp: number | undefined): string => {
-  if (!timestamp) return '';
+  if (!timestamp) return "";
+
   const d = new Date(timestamp);
   const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
+  const pad = (n: number) => String(n).padStart(2, "0");
 
   const isToday = d.toDateString() === now.toDateString();
   const yesterday = new Date(now);
@@ -141,7 +133,7 @@ const formatConvTime = (timestamp: number | undefined): string => {
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
   if (isYesterday) {
-    return '昨天';
+    return "昨天";
   }
   if (d.getFullYear() === now.getFullYear()) {
     return `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -151,32 +143,32 @@ const formatConvTime = (timestamp: number | undefined): string => {
 </script>
 
 <style scoped>
+.page-head {
+  padding: 18px 18px 16px;
+}
+
 .messages-page {
   min-height: 100%;
 }
 
-/* ====== 会话列表 ====== */
 .conversation-list {
   display: flex;
   flex-direction: column;
+  gap: 10px;
 }
 
-/* ====== 会话卡片 ====== */
 .conv-card {
   display: flex;
   align-items: center;
-  padding: 14px 16px;
-  background: #fff;
-  border-bottom: 1px solid #f4f5f7;
   gap: 12px;
+  padding: 14px 16px;
   cursor: pointer;
 }
 
 .conv-card:active {
-  background: #f7f8fa;
+  transform: scale(0.995);
 }
 
-/* 头像 + 在线绿点 */
 .avatar-wrap {
   position: relative;
   flex-shrink: 0;
@@ -184,8 +176,8 @@ const formatConvTime = (timestamp: number | undefined): string => {
 
 .online-dot {
   position: absolute;
-  bottom: 2px;
   right: 2px;
+  bottom: 2px;
   width: 10px;
   height: 10px;
   border-radius: 50%;
@@ -193,7 +185,6 @@ const formatConvTime = (timestamp: number | undefined): string => {
   border: 2px solid #fff;
 }
 
-/* 会话主体 */
 .conv-body {
   flex: 1;
   min-width: 0;
@@ -202,47 +193,42 @@ const formatConvTime = (timestamp: number | undefined): string => {
   gap: 6px;
 }
 
-.conv-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.conv-name {
-  font-size: 15px;
-  font-weight: 500;
-  color: #323233;
-}
-
-.conv-time {
-  font-size: 12px;
-  color: #969799;
-  flex-shrink: 0;
-  margin-left: 12px;
-}
-
+.conv-top,
 .conv-bottom {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
+}
+
+.conv-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.conv-time,
+.conv-preview {
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .conv-preview {
-  font-size: 13px;
-  color: #969799;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* ====== 滑动删除按钮 ====== */
 .delete-btn {
   height: 100%;
-  min-width: 64px;
+  min-width: 68px;
 }
 
-/* ====== 下拉刷新位置调整 ====== */
 .messages-page :deep(.van-pull-refresh) {
   min-height: calc(100vh - 46px - 50px - 24px);
+}
+
+.messages-page :deep(.van-badge) {
+  background: var(--accent-primary);
 }
 </style>
