@@ -3,6 +3,7 @@
     <div class="layout-glow layout-glow-top"></div>
     <div class="layout-glow layout-glow-bottom"></div>
     <van-nav-bar
+      v-if="!isChatPage"
       :title="title"
       left-arrow
       class="app-nav"
@@ -15,10 +16,10 @@
         </div>
       </template>
     </van-nav-bar>
-    <div id="content">
+    <div id="content" :class="{ 'chat-content': isChatPage }">
       <router-view />
     </div>
-    <van-tabbar route class="app-tabbar">
+    <van-tabbar v-if="!isChatPage" route class="app-tabbar">
       <van-tabbar-item to="/" icon="home-o" name="index">首页</van-tabbar-item>
       <van-tabbar-item to="/team" icon="search" name="team">队伍</van-tabbar-item>
       <van-tabbar-item to="/message" icon="chat-o" name="message" :badge="unreadBadge">消息</van-tabbar-item>
@@ -29,14 +30,16 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import routes from "../config/route";
 import { getUnreadCount as fetchUnreadCount } from "../services/chat";
 import { getUnreadCount, setUnreadCount } from "../states/chat";
 
 const router = useRouter();
+const route = useRoute();
 const DEFAULT_TITLE = "ECHO";
 const title = ref(DEFAULT_TITLE);
+const isChatPage = computed(() => route.path === "/chat");
 
 router.beforeEach((to) => {
   const route = routes.find((item) => item.path === to.path);
@@ -146,6 +149,11 @@ router.afterEach(() => {
   z-index: 1;
   padding: 14px 14px 86px;
   min-height: 100vh;
+}
+
+#content.chat-content {
+  padding: 0;
+  min-height: 0;
 }
 
 .app-tabbar {

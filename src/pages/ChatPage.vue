@@ -14,11 +14,22 @@
         <div v-if="loading" class="loading-wrap">
           <van-loading size="20" />
         </div>
-        <div v-else-if="!hasMore && messages.length > 0" class="no-more">没有更多消息了</div>
 
-        <van-empty v-if="!loading && messages.length === 0" description="暂无消息，发出第一条问候吧" />
+        <div v-else-if="!hasMore && messages.length > 0" class="no-more">
+          没有更多消息了
+        </div>
 
-        <div v-for="msg in messages" :key="msg.messageId" class="msg-row" :class="{ self: msg.senderId === currentUserId }">
+        <van-empty
+          v-if="!loading && messages.length === 0"
+          description="暂无消息，发出第一条问候吧"
+        />
+
+        <div
+          v-for="msg in messages"
+          :key="msg.messageId"
+          class="msg-row"
+          :class="{ self: msg.senderId === currentUserId }"
+        >
           <van-image
             v-if="msg.senderId !== currentUserId"
             round
@@ -27,6 +38,7 @@
             :src="targetAvatarUrl"
             class="avatar"
           />
+
           <div class="bubble-wrap">
             <div class="bubble" :class="{ self: msg.senderId === currentUserId }">
               {{ msg.content }}
@@ -35,6 +47,7 @@
               {{ formatMsgTime(msg.createTime) }}
             </div>
           </div>
+
           <van-image
             v-if="msg.senderId === currentUserId"
             round
@@ -53,7 +66,14 @@
           :disabled="sending"
           @keyup.enter="doSend"
         />
-        <van-button round type="primary" size="small" class="send-button" :loading="sending" @click="doSend">
+        <van-button
+          round
+          type="primary"
+          size="small"
+          class="send-button"
+          :loading="sending"
+          @click="doSend"
+        >
           发送
         </van-button>
       </div>
@@ -71,15 +91,12 @@ import { getCurrentUser } from "../services/user";
 
 const route = useRoute();
 const router = useRouter();
+
 const conversationId = Number(route.query.conversationId);
 const targetUserId = Number(route.query.targetUserId);
 const targetUsername = ref((route.query.targetUsername as string) || "聊天");
 const targetAvatarUrl = ref((route.query.targetAvatarUrl as string) || "");
 const targetOnline = ref(route.query.targetOnline === "true");
-
-const onBack = () => {
-  router.back();
-};
 
 const messages = ref<MessageType[]>([]);
 const inputText = ref("");
@@ -93,8 +110,32 @@ const currentUserAvatar = ref("");
 const msgListRef = ref<HTMLElement>();
 
 let ws: ChatWebSocket | null = null;
+let tempIdCounter = -1;
+const pendingAckQueue: MessageType[] = [];
+
+const updateViewportHeight = () => {
+  const height = window.visualViewport?.height || window.innerHeight;
+  document.documentElement.style.setProperty("--chat-viewport-height", `${height}px`);
+};
+
+const onViewportResize = () => {
+  const el = msgListRef.value;
+  const wasNearBottom = el
+    ? el.scrollHeight - el.scrollTop - el.clientHeight < 100
+    : false;
+
+  updateViewportHeight();
+  if (wasNearBottom) scrollToBottom();
+};
+
+const onBack = () => {
+  router.back();
+};
 
 onMounted(async () => {
+  updateViewportHeight();
+  window.visualViewport?.addEventListener("resize", onViewportResize);
+
   const user = await getCurrentUser();
   if (user) {
     currentUserId.value = user.id;
@@ -112,6 +153,9 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  window.visualViewport?.removeEventListener("resize", onViewportResize);
+  document.documentElement.style.removeProperty("--chat-viewport-height");
+
   if (ws) {
     ws.disconnect();
     ws = null;
@@ -142,6 +186,7 @@ const loadMore = async () => {
 const onScroll = () => {
   const el = msgListRef.value;
   if (!el) return;
+
   if (el.scrollTop === 0 && hasMore.value && !loadingMore.value) {
     const prevHeight = el.scrollHeight;
     loadMore().then(() => {
@@ -162,9 +207,6 @@ const scrollToBottom = () => {
     }
   });
 };
-
-let tempIdCounter = -1;
-const pendingAckQueue: MessageType[] = [];
 
 const handleWsMessage = (msg: any) => {
   switch (msg.type) {
@@ -273,7 +315,7 @@ const formatMsgTime = (timestamp: number): string => {
   position: fixed;
   inset: 0;
   z-index: 100;
-  padding: 10px;
+  height: var(--chat-viewport-height, 100dvh);
   background:
     radial-gradient(circle at top right, rgba(242, 204, 143, 0.18), transparent 26%),
     linear-gradient(180deg, #f7efe4 0%, #eef2f8 100%);
@@ -283,14 +325,15 @@ const formatMsgTime = (timestamp: number): string => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-radius: 24px;
+  border-radius: 0;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(18px);
-  box-shadow: var(--shadow-card);
 }
 
 .chat-nav {
+  flex-shrink: 0;
+  padding-top: env(safe-area-inset-top, 0px);
   background: rgba(255, 250, 244, 0.88);
 }
 
@@ -315,6 +358,7 @@ const formatMsgTime = (timestamp: number): string => {
 
 .msg-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 16px;
 }
@@ -384,22 +428,33 @@ const formatMsgTime = (timestamp: number): string => {
 }
 
 .input-bar {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px 12px;
-  background: rgba(255, 250, 244, 0.88);
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: rgba(255, 250, 244, 0.94);
   border-top: 1px solid rgba(224, 122, 95, 0.1);
 }
 
+.input-bar :deep(.van-cell),
 .input-bar :deep(.van-field) {
   flex: 1;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.92);
   border-radius: 20px;
-  padding: 6px 16px;
+}
+
+.input-bar :deep(.van-field__body) {
+  min-height: 36px;
+}
+
+.input-bar :deep(.van-field__control) {
+  font-size: 14px;
 }
 
 .send-button {
+  flex-shrink: 0;
+  min-width: 68px;
   border: none;
   background: linear-gradient(135deg, var(--accent-primary) 0%, #ef9a74 100%);
 }
