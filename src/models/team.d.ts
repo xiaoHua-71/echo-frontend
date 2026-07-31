@@ -1,19 +1,39 @@
-import {UserType} from "./user";
+import { UserType } from "./user";
 
-/**
- * 队伍类别
- */
+export type TeamStatus = 0 | 1 | 2;
+
 export type TeamType = {
-    id: number;
-    name: string;
-    description: string;
-    expireTime?: Date;
-    maxNum: number;
-    password?: string,
-    // todo 定义枚举值类型，更规范
-    status: number;
-    createTime: Date;
-    updateTime: Date;
-    createUser?: UserType;
-    hasJoinNum?: number;
+  id: number;
+  name: string;
+  description: string;
+  expireTime?: string | Date;
+  maxNum: number;
+  status: TeamStatus;
+  createTime: string | Date;
+  updateTime: string | Date;
+  userId: number;
+  hasJoin: boolean;
+  createUser?: UserType;
+  hasJoinNum: number;
+};
+
+export type TeamForm = {
+  id?: number;
+  name: string;
+  description: string;
+  expireTime: string;
+  maxNum: number;
+  password?: string;
+  status: TeamStatus;
+};
+
+export type TeamMember = {
+  userId: number;
+  username: string;
+  avatarUrl?: string;
+  gender: number;
+  phone?: string;
+  email?: string;
+  profile?: string;
+  joinTime: string | Date;
 };

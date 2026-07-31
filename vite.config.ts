@@ -10,6 +10,8 @@ export default defineConfig({
     // 将 server 配置放在这里
     server: {
         host: '0.0.0.0',
+        port: 3000,
+        strictPort: true,
         proxy: {
             '/api': {
                 target: 'http://localhost:8101',
