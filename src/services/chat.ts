@@ -1,5 +1,5 @@
 import myAxios from "../plugins/myAxios";
-import type { ConversationType, MessageType, WsMessage, WsSendPayload } from "../models/chat";
+import type { ConversationType, MessageType, TeamConversationType, TeamMessageType, WsMessage, WsSendPayload } from "../models/chat";
 
 // ==================== REST API ====================
 
@@ -25,6 +25,12 @@ export const getConversations = async (): Promise<ConversationType[]> => {
     return [];
 };
 
+export const getTeamConversations = async (): Promise<TeamConversationType[]> => {
+    const res = await myAxios.get<TeamConversationType[]>('/team/chat/conversations');
+    if (res.code === 0 && res.data) return res.data;
+    return [];
+};
+
 /**
  * 获取消息历史（分页，最新消息在前）
  */
@@ -39,6 +45,18 @@ export const getMessages = async (
     if (res.code === 0 && res.data) {
         return res.data;
     }
+    return [];
+};
+
+export const getTeamMessages = async (
+    teamId: number,
+    pageNum: number = 1,
+    pageSize: number = 20,
+): Promise<TeamMessageType[]> => {
+    const res = await myAxios.get<TeamMessageType[]>(
+        `/team/chat/messages/${teamId}?pageNum=${pageNum}&pageSize=${pageSize}`,
+    );
+    if (res.code === 0 && res.data) return res.data;
     return [];
 };
 
@@ -60,6 +78,16 @@ export const sendMessageHttp = async (
     if (res.code === 0 && res.data) {
         return res.data;
     }
+    return null;
+};
+
+export const sendTeamMessageHttp = async (
+    teamId: number,
+    content: string,
+    msgType: number = 0,
+): Promise<TeamMessageType | null> => {
+    const res = await myAxios.post<TeamMessageType>('/team/chat/send', { teamId, content, msgType });
+    if (res.code === 0 && res.data) return res.data;
     return null;
 };
 

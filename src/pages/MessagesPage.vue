@@ -18,20 +18,21 @@
       <van-empty v-if="!loading && conversations.length === 0" description="暂无消息" />
 
       <div v-if="!loading && conversations.length > 0" class="conversation-list">
-        <van-swipe-cell v-for="conv in conversations" :key="conv.conversationId">
+        <van-swipe-cell v-for="conv in conversations" :key="conv.key" :disabled="conv.kind === 'team'">
           <div class="conv-card glass-card" @click="onEnterChat(conv)">
             <div class="avatar-wrap">
-              <van-image round width="52" height="52" :src="conv.targetAvatarUrl" />
-              <span v-if="conv.online" class="online-dot"></span>
+              <van-image v-if="conv.kind === 'private'" round width="52" height="52" :src="conv.targetAvatarUrl" />
+              <div v-if="conv.kind === 'team'" class="team-avatar">群</div>
+              <span v-if="conv.kind === 'private' && conv.online" class="online-dot"></span>
             </div>
             <div class="conv-body">
               <div class="conv-top">
-                <span class="conv-name">{{ conv.targetUsername }}</span>
+                <span class="conv-name">{{ conv.kind === 'team' ? conv.teamName : conv.targetUsername }}</span>
                 <span class="conv-time">{{ formatConvTime(conv.lastMessageTime) }}</span>
               </div>
               <div class="conv-bottom">
                 <span class="conv-preview">{{ truncate(conv.lastMessage, 30) }}</span>
-                <van-badge v-if="conv.unreadCount > 0" :content="conv.unreadCount" max="99" />
+                <van-badge v-if="conv.kind === 'private' && conv.unreadCount > 0" :content="conv.unreadCount" max="99" />
               </div>
             </div>
           </div>
@@ -54,18 +55,27 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { Dialog, Toast } from "vant";
-import type { ConversationType } from "../models/chat";
-import { deleteConversation, getConversations, getUnreadCount } from "../services/chat";
+import type { ConversationType, TeamConversationType } from "../models/chat";
+import { deleteConversation, getConversations, getTeamConversations, getUnreadCount } from "../services/chat";
 import { setUnreadCount } from "../states/chat";
 
 const router = useRouter();
-const conversations = ref<ConversationType[]>([]);
+type DisplayConversation =
+  | (ConversationType & { kind: "private"; key: string })
+  | (TeamConversationType & { kind: "team"; key: string });
+const conversations = ref<DisplayConversation[]>([]);
 const loading = ref(true);
 const refreshing = ref(false);
 
 const loadData = async () => {
-  const data = await getConversations();
-  conversations.value = data;
+  const [privateConversations, teamConversations] = await Promise.all([
+    getConversations(),
+    getTeamConversations(),
+  ]);
+  conversations.value = [
+    ...privateConversations.map((conversation) => ({ ...conversation, kind: "private" as const, key: `private-${conversation.conversationId}` })),
+    ...teamConversations.map((conversation) => ({ ...conversation, kind: "team" as const, key: `team-${conversation.teamId}` })),
+  ].sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0));
 
   const count = await getUnreadCount();
   setUnreadCount(count);
@@ -82,7 +92,11 @@ const onRefresh = async () => {
   refreshing.value = false;
 };
 
-const onEnterChat = (conv: ConversationType) => {
+const onEnterChat = (conv: DisplayConversation) => {
+  if (conv.kind === "team") {
+    router.push({ path: "/chat", query: { teamId: String(conv.teamId), teamName: conv.teamName } });
+    return;
+  }
   router.push({
     path: "/chat",
     query: {
@@ -95,7 +109,8 @@ const onEnterChat = (conv: ConversationType) => {
   });
 };
 
-const onDelete = (conv: ConversationType) => {
+const onDelete = (conv: DisplayConversation) => {
+  if (conv.kind === "team") return;
   Dialog.confirm({
     title: "删除会话",
     message: "删除后将不再显示该会话。",
@@ -103,7 +118,7 @@ const onDelete = (conv: ConversationType) => {
     .then(async () => {
       const ok = await deleteConversation(conv.conversationId);
       if (ok) {
-        conversations.value = conversations.value.filter((c) => c.conversationId !== conv.conversationId);
+        conversations.value = conversations.value.filter((c) => c.key !== conv.key);
         Toast.success("已删除");
       } else {
         Toast.fail("删除失败");
@@ -183,6 +198,17 @@ const formatConvTime = (timestamp: number | undefined): string => {
   border-radius: 50%;
   background: #07c160;
   border: 2px solid #fff;
+}
+
+.team-avatar {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  color: #fff;
+  font-weight: 700;
 }
 
 .conv-body {

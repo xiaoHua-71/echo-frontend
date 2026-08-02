@@ -12,6 +12,14 @@ export type ConversationType = {
     online: boolean;
 };
 
+export type TeamConversationType = {
+    teamId: number;
+    teamName: string;
+    lastMessage?: string;
+    lastMessageTime?: number;
+    memberCount: number;
+};
+
 /**
  * 消息类型
  * msgType: 0=文本, 1=图片, 2=系统消息
@@ -22,6 +30,20 @@ export type MessageType = {
     conversationId: number;
     senderId: number;
     receiverId: number;
+    content: string;
+    msgType: number;
+    status: number;
+    createTime: number;
+    senderName?: string;
+    senderAvatarUrl?: string;
+};
+
+export type TeamMessageType = {
+    messageId: number;
+    teamId: number;
+    senderId: number;
+    senderName: string;
+    senderAvatarUrl?: string;
     content: string;
     msgType: number;
     status: number;
@@ -42,6 +64,13 @@ export type WsSendMsg = {
     msgType: number;
 };
 
+export type WsSendTeamMsg = {
+    type: 'SEND_TEAM';
+    teamId: number;
+    content: string;
+    msgType: number;
+};
+
 export type WsAckMsg = {
     type: 'ACK';
     messageId: number;
@@ -50,10 +79,28 @@ export type WsAckMsg = {
     createTime: number;
 };
 
+export type WsAckTeamMsg = {
+    type: 'ACK_TEAM';
+    messageId: number;
+    teamId: number;
+    content: string;
+    createTime: number;
+};
+
 export type WsNewMsg = {
     type: 'NEW_MSG';
     messageId: number;
     conversationId: number;
+    senderId: number;
+    content: string;
+    msgType: number;
+    createTime: number;
+};
+
+export type WsNewTeamMsg = {
+    type: 'NEW_TEAM_MSG';
+    messageId: number;
+    teamId: number;
     senderId: number;
     content: string;
     msgType: number;
@@ -88,9 +135,11 @@ export type WsMessage =
     | WsNewMsg
     | WsReadMsg
     | WsPongMsg
-    | WsErrorMsg;
+    | WsErrorMsg
+    | WsAckTeamMsg
+    | WsNewTeamMsg;
 
 /**
  * 客户端可发送的 WS 消息类型
  */
-export type WsSendPayload = WsSendMsg | WsReadMsg | WsPingMsg;
+export type WsSendPayload = WsSendMsg | WsSendTeamMsg | WsReadMsg | WsPingMsg;

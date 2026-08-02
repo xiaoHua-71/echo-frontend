@@ -1,9 +1,9 @@
 <template>
   <div class="chat-page">
     <div class="chat-shell">
-      <van-nav-bar :title="targetUsername" left-arrow class="chat-nav" @click-left="onBack">
+      <van-nav-bar :title="isTeamChat ? teamName : targetUsername" left-arrow class="chat-nav" @click-left="onBack">
         <template #right>
-          <div class="chat-status" :class="{ online: targetOnline }">
+          <div v-if="!isTeamChat" class="chat-status" :class="{ online: targetOnline }">
             <span class="online-dot"></span>
             <span>{{ targetOnline ? "在线" : "离线" }}</span>
           </div>
@@ -35,12 +35,13 @@
             round
             width="36"
             height="36"
-            :src="targetAvatarUrl"
+            :src="isTeamChat ? msg.senderAvatarUrl : targetAvatarUrl"
             class="avatar"
           />
 
           <div class="bubble-wrap">
             <div class="bubble" :class="{ self: msg.senderId === currentUserId }">
+              <span v-if="isTeamChat && msg.senderId !== currentUserId" class="sender-name">{{ msg.senderName }}</span>
               {{ msg.content }}
             </div>
             <div class="time" :class="{ self: msg.senderId === currentUserId }">
@@ -85,20 +86,24 @@
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Toast } from "vant";
-import type { MessageType } from "../models/chat";
-import { ChatWebSocket, getMessages, sendMessageHttp } from "../services/chat";
+import type { MessageType, TeamMessageType } from "../models/chat";
+import { ChatWebSocket, getMessages, getTeamMessages, sendMessageHttp, sendTeamMessageHttp } from "../services/chat";
 import { getCurrentUser } from "../services/user";
 
 const route = useRoute();
 const router = useRouter();
 
 const conversationId = Number(route.query.conversationId);
+const teamId = Number(route.query.teamId);
+const isTeamChat = Number.isFinite(teamId);
 const targetUserId = Number(route.query.targetUserId);
 const targetUsername = ref((route.query.targetUsername as string) || "聊天");
 const targetAvatarUrl = ref((route.query.targetAvatarUrl as string) || "");
 const targetOnline = ref(route.query.targetOnline === "true");
+const teamName = ref((route.query.teamName as string) || "群聊");
 
-const messages = ref<MessageType[]>([]);
+type ChatMessage = MessageType | TeamMessageType;
+const messages = ref<ChatMessage[]>([]);
 const inputText = ref("");
 const sending = ref(false);
 const loading = ref(true);
@@ -112,6 +117,7 @@ const msgListRef = ref<HTMLElement>();
 let ws: ChatWebSocket | null = null;
 let tempIdCounter = -1;
 const pendingAckQueue: MessageType[] = [];
+const pendingTeamAckQueue: TeamMessageType[] = [];
 
 const updateViewportHeight = () => {
   const height = window.visualViewport?.height || window.innerHeight;
@@ -142,7 +148,7 @@ onMounted(async () => {
     currentUserAvatar.value = user.avatarUrl || "";
   }
 
-  document.title = `ECHO · ${targetUsername.value}`;
+  document.title = `ECHO · ${isTeamChat ? teamName.value : targetUsername.value}`;
   await loadMessages();
   loading.value = false;
   scrollToBottom();
@@ -164,7 +170,9 @@ onBeforeUnmount(() => {
 });
 
 const loadMessages = async () => {
-  const data = await getMessages(conversationId, currentPage.value);
+  const data = isTeamChat
+    ? await getTeamMessages(teamId, currentPage.value)
+    : await getMessages(conversationId, currentPage.value);
   if (data.length > 0) {
     messages.value = [...data.reverse(), ...messages.value];
     if (data.length < 20) {
@@ -211,6 +219,7 @@ const scrollToBottom = () => {
 const handleWsMessage = (msg: any) => {
   switch (msg.type) {
     case "NEW_MSG": {
+      if (isTeamChat) break;
       if (msg.senderId === currentUserId.value) break;
 
       const newMsg: MessageType = {
@@ -228,7 +237,24 @@ const handleWsMessage = (msg: any) => {
       ws?.send({ type: "READ", conversationId });
       break;
     }
+    case "NEW_TEAM_MSG": {
+      if (!isTeamChat || msg.teamId !== teamId || msg.senderId === currentUserId.value) break;
+      messages.value.push({
+        messageId: msg.messageId,
+        teamId: msg.teamId,
+        senderId: msg.senderId,
+        senderName: msg.senderName || "成员",
+        senderAvatarUrl: msg.senderAvatarUrl || "",
+        content: msg.content,
+        msgType: msg.msgType ?? 0,
+        status: 0,
+        createTime: msg.createTime,
+      });
+      scrollToBottom();
+      break;
+    }
     case "ACK": {
+      if (isTeamChat) break;
       const optimistic = pendingAckQueue.shift();
       if (optimistic) {
         optimistic.messageId = msg.messageId;
@@ -241,6 +267,15 @@ const handleWsMessage = (msg: any) => {
             `?conversationId=${msg.conversationId}&targetUserId=${targetUserId}&targetUsername=${targetUsername.value}&targetAvatarUrl=${targetAvatarUrl.value}&targetOnline=${targetOnline.value}`,
           );
         }
+      }
+      break;
+    }
+    case "ACK_TEAM": {
+      if (!isTeamChat || msg.teamId !== teamId) break;
+      const optimistic = pendingTeamAckQueue.shift();
+      if (optimistic) {
+        optimistic.messageId = msg.messageId;
+        optimistic.createTime = msg.createTime;
       }
       break;
     }
@@ -269,6 +304,37 @@ const doSend = async () => {
     status: 0,
     createTime: Date.now(),
   };
+
+  if (isTeamChat) {
+    const optimisticTeamMsg: TeamMessageType = {
+      messageId: tempId,
+      teamId,
+      senderId: currentUserId.value,
+      senderName: "我",
+      senderAvatarUrl: currentUserAvatar.value,
+      content: text,
+      msgType: 0,
+      status: 0,
+      createTime: Date.now(),
+    };
+    const wsOk = ws?.send({ type: "SEND_TEAM", teamId, content: text, msgType: 0 });
+    if (wsOk) {
+      messages.value.push(optimisticTeamMsg);
+      pendingTeamAckQueue.push(optimisticTeamMsg);
+      scrollToBottom();
+    } else {
+      const result = await sendTeamMessageHttp(teamId, text, 0);
+      if (result) {
+        messages.value.push(result);
+        scrollToBottom();
+      } else {
+        Toast.fail("鍙戦€佸け璐ワ紝璇烽噸璇?");
+        inputText.value = text;
+      }
+    }
+    sending.value = false;
+    return;
+  }
 
   const wsOk = ws?.send({
     type: "SEND",
@@ -408,6 +474,13 @@ const formatMsgTime = (timestamp: number): string => {
   line-height: 1.55;
   box-shadow: var(--shadow-soft);
   word-break: break-word;
+}
+
+.sender-name {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
 .bubble.self {
