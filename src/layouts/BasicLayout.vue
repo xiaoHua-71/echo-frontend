@@ -61,6 +61,10 @@ const unreadBadge = computed(() => {
 });
 
 const syncUnread = async () => {
+  if (route.meta.requiresAuth !== true) {
+    return;
+  }
+
   const count = await fetchUnreadCount();
   setUnreadCount(count);
 };
