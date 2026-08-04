@@ -35,13 +35,13 @@
             round
             width="36"
             height="36"
-            :src="isTeamChat ? msg.senderAvatarUrl : targetAvatarUrl"
+            :src="getMessageAvatar(msg)"
             class="avatar"
           />
 
           <div class="bubble-wrap">
             <div class="bubble" :class="{ self: msg.senderId === currentUserId }">
-              <span v-if="isTeamChat && msg.senderId !== currentUserId" class="sender-name">{{ msg.senderName }}</span>
+              <span v-if="isTeamChat && msg.senderId !== currentUserId" class="sender-name">{{ getSenderName(msg) }}</span>
               {{ msg.content }}
             </div>
             <div class="time" :class="{ self: msg.senderId === currentUserId }">
@@ -87,8 +87,11 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Toast } from "vant";
 import type { MessageType, TeamMessageType } from "../models/chat";
+import type { TeamMember } from "../models/team";
 import { ChatWebSocket, getMessages, getTeamMessages, sendMessageHttp, sendTeamMessageHttp } from "../services/chat";
+import { getTeamMembers } from "../services/team";
 import { getCurrentUser } from "../services/user";
+import defaultAvatar from "../assets/logo.png";
 
 const route = useRoute();
 const router = useRouter();
@@ -113,6 +116,7 @@ const currentPage = ref(1);
 const currentUserId = ref<number>(0);
 const currentUserAvatar = ref("");
 const msgListRef = ref<HTMLElement>();
+const teamMembers = new Map<number, TeamMember>();
 
 let ws: ChatWebSocket | null = null;
 let tempIdCounter = -1;
@@ -149,6 +153,9 @@ onMounted(async () => {
   }
 
   document.title = `ECHO · ${isTeamChat ? teamName.value : targetUsername.value}`;
+  if (isTeamChat) {
+    await loadTeamMembers();
+  }
   await loadMessages();
   loading.value = false;
   scrollToBottom();
@@ -181,6 +188,31 @@ const loadMessages = async () => {
   } else {
     hasMore.value = false;
   }
+};
+
+const loadTeamMembers = async () => {
+  try {
+    const members = await getTeamMembers(teamId);
+    members.forEach((member) => teamMembers.set(member.userId, member));
+  } catch (error) {
+    console.warn("[TeamChat] Failed to load team members", error);
+  }
+};
+
+const getMessageAvatar = (msg: ChatMessage): string => {
+  if (msg.senderId === currentUserId.value) {
+    return currentUserAvatar.value || defaultAvatar;
+  }
+  if (isTeamChat) {
+    const teamMsg = msg as TeamMessageType;
+    return teamMsg.senderAvatarUrl || teamMembers.get(teamMsg.senderId)?.avatarUrl || defaultAvatar;
+  }
+  return targetAvatarUrl.value || defaultAvatar;
+};
+
+const getSenderName = (msg: ChatMessage): string => {
+  const teamMsg = msg as TeamMessageType;
+  return teamMsg.senderName || teamMembers.get(teamMsg.senderId)?.username || "成员";
 };
 
 const loadMore = async () => {
@@ -244,7 +276,7 @@ const handleWsMessage = (msg: any) => {
         teamId: msg.teamId,
         senderId: msg.senderId,
         senderName: msg.senderName || "成员",
-        senderAvatarUrl: msg.senderAvatarUrl || "",
+        senderAvatarUrl: msg.senderAvatarUrl || teamMembers.get(msg.senderId)?.avatarUrl || defaultAvatar,
         content: msg.content,
         msgType: msg.msgType ?? 0,
         status: 0,

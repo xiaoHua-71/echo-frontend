@@ -102,6 +102,8 @@ export type WsNewTeamMsg = {
     messageId: number;
     teamId: number;
     senderId: number;
+    senderName?: string;
+    senderAvatarUrl?: string;
     content: string;
     msgType: number;
     createTime: number;
